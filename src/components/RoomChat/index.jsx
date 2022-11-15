@@ -1,4 +1,4 @@
-import { Box, Button, Chip, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import React, { useRef, useState } from "react";
@@ -18,11 +18,19 @@ function RoomChat(props) {
 
   const setWebSocketConnection = () => {
     const socketConnection = new WebSocket(
-      `ws://localhost:8080/ws?name=${username}`
+      `ws://localhost:8080/ws?section=${nameRoom}`
     );
 
     socketConnection.onopen = () => {
       console.log("socket opened");
+
+      socketConnection.send(
+        JSON.stringify({
+          action: "join-room",
+          message: username,
+          target: nameRoom,
+        })
+      );
     };
 
     socketConnection.onclose = () => {
@@ -31,10 +39,12 @@ function RoomChat(props) {
 
     socketConnection.onmessage = (event) => {
       const msgFromServer = JSON.parse(event.data);
-      console.log("message", msgFromServer);
-      listMessage.push(msgFromServer);
+      console.log("message", msgFromServer.sender.name);
+      console.log("listMessage", listMessage);
 
+      listMessage.push(msgFromServer);
       let temp = [...listMessage];
+
       setListMessage(temp);
     };
 
@@ -46,6 +56,7 @@ function RoomChat(props) {
       JSON.stringify({
         action: "send-message",
         message: message,
+        target: nameRoom,
       })
     );
     setMessage("");
@@ -57,17 +68,20 @@ function RoomChat(props) {
     if (email && username) {
       setIsHide(!isHide);
     }
-
-    setWebSocketConnection();
   };
 
   const handleJoinRoomChat = () => {
     if (nameRoom) {
       setIsConnectSw(!isConnectSw);
+      setWebSocketConnection();
 
-      ws.current.send(
-        JSON.stringify({ action: "join-room", message: message })
-      );
+      // ws.current.send(
+      //   JSON.stringify({
+      //     action: "join-room",
+      //     message: username,
+      //     target: nameRoom,
+      //   })
+      // );
     }
   };
 
@@ -84,7 +98,11 @@ function RoomChat(props) {
             <Box>
               <Box id="chat-messages">
                 {listMessage.map((msg) => {
-                  return <Box>{msg.message}</Box>;
+                  return (
+                    <Box>
+                      {msg.sender.name}: {msg.message}
+                    </Box>
+                  );
                 })}
               </Box>
             </Box>
